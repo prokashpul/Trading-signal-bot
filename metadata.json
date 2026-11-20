@@ -1,0 +1,6 @@
+{
+  "name": "AltPulse Futures Bot",
+  "description": "Automated cryptocurrency altcoin futures market analyzer, technical signal generator, and Telegram alert dispatcher.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
