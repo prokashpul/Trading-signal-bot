@@ -490,7 +490,7 @@ export const SignalDetailModal: React.FC<SignalDetailModalProps> = ({
 
           {/* Live Chart for Active Timeframe */}
           {activeFullSignal ? (
-            <CandlestickChart signal={activeFullSignal} />
+            <CandlestickChart signal={activeFullSignal} onChangeTimeframe={setActiveTf} />
           ) : loadingTf === activeTf ? (
             <div className="h-52 bg-[#0B0F17] border border-slate-800 rounded-md flex items-center justify-center text-xs text-slate-400">
               Loading {activeTf.toUpperCase()} candles &amp; chart...

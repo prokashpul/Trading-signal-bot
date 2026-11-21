@@ -3,6 +3,8 @@ import {
   ArrowDownRight,
   ArrowUpRight,
   Bell,
+  LayoutGrid,
+  List,
   Minus,
   Radio,
   Search,
@@ -27,6 +29,7 @@ import {
 import { formatCompactVolume, formatPrice, formatRelativeTime } from '../utils/format';
 import { AlertConfigPanel } from './AlertConfigPanel';
 import { CandlestickChart } from './CandlestickChart';
+import { MarketHeatmap } from './MarketHeatmap';
 import { RiskManagementPanel } from './RiskManagementPanel';
 
 interface SignalScannerViewProps {
@@ -100,6 +103,7 @@ export const SignalScannerView: React.FC<SignalScannerViewProps> = ({
   const [topTenOnly, setTopTenOnly] = useState(false);
   const [priorityOnly, setPriorityOnly] = useState(false);
   const [viewAllTimeframes, setViewAllTimeframes] = useState(false);
+  const [scannerViewMode, setScannerViewMode] = useState<'table' | 'heatmap'>('table');
   const [alertsOpen, setAlertsOpen] = useState(false);
 
   const prioritySet = useMemo(() => new Set(config.priorityCoins ?? []), [config.priorityCoins]);
@@ -635,12 +639,14 @@ export const SignalScannerView: React.FC<SignalScannerViewProps> = ({
       <section className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
         {/* Left Signals Data Table */}
         <div className="lg:col-span-7 bg-[#131A26] border border-slate-800 rounded-lg overflow-hidden">
-          <div className="px-4 py-3 border-b border-slate-800 flex items-center justify-between gap-3">
+          <div className="px-4 py-3 border-b border-slate-800 flex flex-wrap items-center justify-between gap-3">
             <div>
               <h2 className="text-sm font-semibold text-slate-100">
-                {viewAllTimeframes
-                  ? `All Timeframes Live Signals (${filteredMtfSignals.length} setups across 1D–5m)`
-                  : `BTC & Altcoin Live Signals (${config.timeframe.toUpperCase()} + Multi-TF)`}
+                {scannerViewMode === 'heatmap'
+                  ? `Market Performance & Volume Heatmap (${filteredSignals.length} pairs)`
+                  : viewAllTimeframes
+                    ? `All Timeframes Live Signals (${filteredMtfSignals.length} setups across 1D–5m)`
+                    : `BTC & Altcoin Live Signals (${config.timeframe.toUpperCase()} + Multi-TF)`}
               </h2>
               <p className="text-xs text-slate-400">
                 {scanner.isScanning ? (
@@ -655,17 +661,70 @@ export const SignalScannerView: React.FC<SignalScannerViewProps> = ({
                   ` · ${scanner.failedSymbols.length} unavailable`}
               </p>
             </div>
-            <button
-              type="button"
-              onClick={() => onNavigateTab('watchlist')}
-              className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-300 hover:text-white transition-colors whitespace-nowrap shrink-0 cursor-pointer"
-            >
-              <SlidersHorizontal className="w-3.5 h-3.5" />
-              Edit Watchlist
-            </button>
+            <div className="flex items-center gap-3 shrink-0">
+              <div
+                className="flex items-center gap-1 p-0.5 bg-[#0B0F17] border border-slate-800 rounded-md"
+                role="tablist"
+                aria-label="Scanner View Mode"
+              >
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={scannerViewMode === 'table'}
+                  onClick={() => setScannerViewMode('table')}
+                  className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
+                    scannerViewMode === 'table'
+                      ? 'bg-slate-800 text-slate-100'
+                      : 'text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  <List className="w-3.5 h-3.5" />
+                  Table
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={scannerViewMode === 'heatmap'}
+                  onClick={() => setScannerViewMode('heatmap')}
+                  className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
+                    scannerViewMode === 'heatmap'
+                      ? 'bg-sky-500 text-slate-950 font-semibold'
+                      : 'text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  <LayoutGrid className="w-3.5 h-3.5" />
+                  Heatmap
+                </button>
+              </div>
+              <button
+                type="button"
+                onClick={() => onNavigateTab('watchlist')}
+                className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-300 hover:text-white transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+              >
+                <SlidersHorizontal className="w-3.5 h-3.5" />
+                Edit Watchlist
+              </button>
+            </div>
           </div>
 
-          <div className="overflow-x-auto">
+          {scannerViewMode === 'heatmap' ? (
+            <MarketHeatmap
+              signals={filteredSignals}
+              selectedSymbol={activeSignal?.symbol ?? selectedSymbol}
+              prioritySet={prioritySet}
+              isScanning={scanner.isScanning}
+              onSelectSymbol={onSelectSymbol}
+              onOpenSignalDetail={onOpenSignalDetail}
+              onResetFilters={() => {
+                setSearchQuery('');
+                setDirFilter('all');
+                setTopTenOnly(false);
+                setPriorityOnly(false);
+              }}
+              onTriggerScan={onTriggerScan}
+            />
+          ) : (
+            <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="border-b border-slate-800 text-[11px] font-medium text-slate-400 bg-[#0F1520]">
@@ -1144,6 +1203,7 @@ export const SignalScannerView: React.FC<SignalScannerViewProps> = ({
               </tbody>
             </table>
           </div>
+          )}
         </div>
 
         {/* Right Selected Signal Inspector & Interactive Chart */}
@@ -1225,7 +1285,7 @@ export const SignalScannerView: React.FC<SignalScannerViewProps> = ({
               </div>
 
               {/* Interactive SVG Candlestick Chart (updates live on incoming ticks) */}
-              <CandlestickChart signal={activeSignal} />
+              <CandlestickChart signal={activeSignal} onChangeTimeframe={onChangeTimeframe} />
 
               {/* Live Orderbook Best Bid / Ask Strip if available from Lighter WS */}
               {activeSignal.bestBid !== null && activeSignal.bestAsk !== null && (
